@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chat Support Widget Demo</title>
+  <style>
+    body {
+      font-family: Inter, "Segoe UI", system-ui, sans-serif;
+      color: #10201e;
+      margin: 0;
+      padding: 60px 24px;
+      background: #f7faf9;
+    }
+    .page { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 30px; margin: 0 0 12px; }
+    p { color: #5d716d; line-height: 1.6; }
+    code {
+      background: #eef3f1; padding: 2px 6px; border-radius: 4px; font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Acme Corp — Pricing</h1>
+    <p>This page stands in for any customer's website. The chat launcher in the
+       bottom-right corner is the entire embed: one script tag, no build step.</p>
+    <p>To test as a brand new visitor, open the browser console and run
+       <code>OasisChatbot.reset()</code>, then refresh.</p>
+  </div>
+
+  <!-- This is the entire integration a business needs to add.
+       Only data-org-slug and data-api-base are required; the rest is branding. -->
+  <script
+    src="./oasis-chatbot-widget.js"
+    data-org-slug="digital"
+    data-api-base="http://localhost:8000"
+    data-timezone="Asia/Kolkata"
+    data-title="Welcome!"
+    data-subtitle="Text us"
+    data-agent-name="Chat Support"
+    data-greeting="Hi! Ask us anything, or pick a topic to get started."
+    data-topics="Track my order,Refund status,Talk to a human"
+    data-launcher-text="Chat with Us"
+    data-teaser="Hi there! Need any help finding something?"
+    data-teaser-delay="5"
+  ></script>
+</body>
+</html>

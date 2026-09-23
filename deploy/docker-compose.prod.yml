@@ -1,0 +1,107 @@
+version: "3.9"
+
+# Production topology. Differences from docker-compose.yml (dev):
+# - No --reload, no source bind-mount (image is self-contained)
+# - Backend runs multiple worker processes (see WEB_CONCURRENCY) —
+#   safe with the real-time WebSocket layer specifically because
+#   Module 4 built it on Redis Pub/Sub: every worker process subscribes
+#   independently, so a customer's WS connection landing on worker 2
+#   still receives a message published by worker 5. This is the payoff
+#   of that design decision, not something added for deployment.
+# - restart: unless-stopped everywhere
+# - Secrets come from environment / an env file you provide — never
+#   commit real values for JWT_SECRET_KEY or POSTGRES_PASSWORD.
+# - An nginx reverse proxy terminates TLS and forwards to the backend,
+#   including WebSocket upgrade headers (see deploy/nginx.conf.example).
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-oasis_chatbot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-oasis_chatbot}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-oasis_chatbot}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # No published port — only reachable from other containers on this
+    # network. Expose it explicitly (with firewall rules) only if you
+    # need external DB access for backups/admin tools.
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-oasis_chatbot}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-oasis_chatbot}
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set to a real random value}
+      ENVIRONMENT: production
+      DEBUG: "false"
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?e.g. '["https://app.yourdomain.com"]'}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+      # Without this, anyone who finds the URL can create an organization
+      # on your server. Required in production, deliberately not defaulted.
+      SIGNUP_SETUP_KEY: ${SIGNUP_SETUP_KEY:?set a long random value}
+      # Webhook delivery moves off the request path, so a slow CRM
+      # receiver can never delay a customer's message.
+      WEBHOOK_ASYNC_DELIVERY: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers ${WEB_CONCURRENCY:-4}"
+    # Note: python -m app.seed is NOT run automatically here — seed data
+    # (system roles/permissions) should be applied once, deliberately,
+    # via `docker compose -f deploy/docker-compose.prod.yml exec backend python -m app.seed`,
+    # not on every container restart.
+
+  dashboard:
+    build:
+      context: ../dashboard
+      args:
+        # Baked into the browser bundle at build time, so this must be the
+        # public URL agents will use — not an internal container name.
+        NEXT_PUBLIC_API_BASE: ${PUBLIC_API_URL:?e.g. https://api.yourdomain.com}
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads_data:

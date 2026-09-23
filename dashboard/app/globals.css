@@ -1,0 +1,852 @@
+/*
+  Oasis Chatbot — agent console.
+
+  Design intent: agents live in this screen for whole shifts, so the page
+  is quiet and low-glare, and only one thing is allowed to shout — a chat
+  nobody has picked up yet. Palette follows the product's name: deep water
+  greens on a pale mineral canvas, with amber reserved exclusively for
+  "someone is waiting".
+*/
+
+:root {
+  --deep: #0b2b27;      /* sidebar, darkest water */
+  --ink: #10201e;       /* primary text */
+  --muted: #5d716d;     /* secondary text */
+  --canvas: #eef3f1;    /* app background */
+  --surface: #ffffff;   /* panels */
+  --line: #dce5e2;      /* hairlines */
+  --accent: #0e7c66;    /* primary action */
+  --accent-soft: #e3f0ec;
+  --waiting: #b4610f;   /* unclaimed chats only */
+  --waiting-soft: #fbeee0;
+  --danger: #a32b2b;
+  --danger-soft: #fbe9e9;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  height: 100%;
+  color-scheme: light;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100%;
+  color: var(--ink);
+  background: var(--canvas);
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Space Grotesk", Inter, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 22px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Keyboard users must always be able to see where they are. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---------- App shell ---------- */
+
+.shell {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 232px;
+  flex-shrink: 0;
+  background: var(--deep);
+  color: #cfe0db;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 16px 16px;
+}
+
+.wordmark {
+  font-family: "Space Grotesk", Inter, system-ui, sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.02em;
+  padding: 0 10px;
+  margin-bottom: 4px;
+}
+
+.wordmark-sub {
+  font-size: 12.5px;
+  color: #7fa79e;
+  padding: 0 10px;
+  margin-bottom: 26px;
+}
+
+.nav-link {
+  display: block;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  color: #cfe0db;
+  font-size: 14.5px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+.nav-link[aria-current="page"] {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-weight: 500;
+}
+
+.sidebar-foot {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.who {
+  padding: 0 10px 12px;
+  font-size: 13px;
+  color: #7fa79e;
+}
+
+.who strong {
+  display: block;
+  color: #e6efec;
+  font-weight: 500;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  font: inherit;
+  font-size: 14.5px;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: #0a6753;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-quiet {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.btn-quiet:hover:not(:disabled) {
+  background: var(--canvas);
+}
+
+.btn-ghost-light {
+  background: transparent;
+  color: #cfe0db;
+  border-color: rgba(255, 255, 255, 0.18);
+  width: 100%;
+}
+
+.btn-ghost-light:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* ---------- Forms ---------- */
+
+.field {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.field input,
+.field select {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ---------- Messages ---------- */
+
+.alert {
+  padding: 10px 13px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.alert-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.alert-info {
+  background: var(--accent-soft);
+  color: #0a5748;
+}
+
+/* ---------- Page scaffolding ---------- */
+
+.page {
+  padding: 26px 30px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.count {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.empty {
+  padding: 46px 30px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14.5px;
+  max-width: 46ch;
+  margin: 0 auto;
+}
+
+.empty strong {
+  display: block;
+  color: var(--ink);
+  font-weight: 500;
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+/* ---------- Conversation rows ----------
+   The one place this interface raises its voice. A chat with no agent on
+   it gets an amber rail down its left edge, so a full queue is legible
+   from across a desk without reading a single word. */
+
+.row {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  padding: 13px 16px 13px 13px;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--line);
+  transition: background 120ms ease;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row-open:hover {
+  background: #f7faf9;
+}
+
+.row-waiting {
+  border-left-color: var(--waiting);
+}
+
+.row-locked {
+  cursor: not-allowed;
+  background: #fbfcfc;
+}
+
+.row-locked .row-name,
+.row-locked .row-meta {
+  color: var(--muted);
+}
+
+.row-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.row-name {
+  font-size: 15.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.row-phone {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: 7px;
+  font-size: 14px;
+}
+
+.row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 12px;
+  background: var(--canvas);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.pill-waiting {
+  background: var(--waiting-soft);
+  color: var(--waiting);
+  border-color: #f0d9be;
+}
+
+.pill-open {
+  background: var(--accent-soft);
+  color: #0a5748;
+  border-color: #c7e0d8;
+}
+
+/* ---------- Chat view ---------- */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--surface);
+}
+
+.chat-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.chat-customer {
+  font-family: "Space Grotesk", Inter, system-ui, sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.chat-contact {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.chat-meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.back-link {
+  font-size: 13.5px;
+  color: var(--muted);
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.back-link:hover {
+  color: var(--accent);
+}
+
+.thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px 24px;
+  background: var(--canvas);
+}
+
+.bubble-row {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.bubble-row-agent {
+  justify-content: flex-end;
+}
+
+.bubble {
+  max-width: min(62ch, 72%);
+  padding: 9px 13px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bubble-customer {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 3px;
+}
+
+.bubble-agent {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 3px;
+}
+
+.composer {
+  display: flex;
+  gap: 10px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.composer input {
+  flex: 1;
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.composer input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ---------- Table ---------- */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+
+.table th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--muted);
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #f8faf9;
+}
+
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ---------- Login ---------- */
+
+.login-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--deep);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 30px 28px;
+}
+
+.login-card h1 {
+  font-family: "Space Grotesk", Inter, system-ui, sans-serif;
+  font-size: 25px;
+  letter-spacing: -0.02em;
+  margin-bottom: 3px;
+}
+
+.login-lede {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 22px;
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 720px) {
+  .shell {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 14px;
+    flex-wrap: wrap;
+  }
+
+  .wordmark,
+  .wordmark-sub {
+    margin: 0;
+    padding: 0 6px 0 0;
+  }
+
+  .wordmark-sub,
+  .who {
+    display: none;
+  }
+
+  .sidebar-foot {
+    margin: 0 0 0 auto;
+    padding: 0;
+    border: none;
+  }
+
+  .btn-ghost-light {
+    width: auto;
+  }
+
+  .page {
+    padding: 18px 14px;
+  }
+}
+
+/* ---------- Tickets ---------- */
+
+.filters {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.chip {
+  font: inherit;
+  font-size: 13.5px;
+  padding: 5px 13px;
+  border-radius: 100px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.chip:hover {
+  color: var(--ink);
+}
+
+.chip-on {
+  background: var(--deep);
+  border-color: var(--deep);
+  color: #fff;
+}
+
+/* Urgent work is the only thing on this page allowed to use the waiting
+   colour, for the same reason unclaimed chats own it in the inbox. */
+.pill-urgent {
+  background: var(--waiting-soft);
+  color: var(--waiting);
+  border-color: #f0d9be;
+}
+
+.controls {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.controls select {
+  min-width: 140px;
+}
+
+.static-value {
+  margin-top: 5px;
+  padding: 9px 0;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.ticket-description {
+  padding-top: 15px;
+  border-top: 1px solid var(--line);
+  white-space: pre-wrap;
+  max-width: 72ch;
+}
+
+.note {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.note:last-child {
+  border-bottom: none;
+}
+
+.note-head {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+
+.ticket-form {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+  background: #f8faf9;
+}
+
+.ticket-form .field input {
+  max-width: 620px;
+}
+
+/* ---------- Timestamps ---------- */
+
+.row-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Kept quiet and out of the reading path: an agent scans names first and
+   only checks the time once something has caught their eye. */
+.row-time {
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.day-divider {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 16px 0 12px;
+  position: relative;
+}
+
+.day-divider::before,
+.day-divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: calc(50% - 60px);
+  border-top: 1px solid var(--line);
+}
+
+.day-divider::before {
+  left: 0;
+}
+
+.day-divider::after {
+  right: 0;
+}
+
+.bubble-group {
+  display: flex;
+  flex-direction: column;
+  max-width: min(62ch, 72%);
+}
+
+.bubble-group .bubble {
+  max-width: 100%;
+}
+
+.bubble-time {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 3px;
+  padding: 0 3px;
+}
+
+.bubble-row-agent .bubble-group {
+  align-items: flex-end;
+}
+
+/* ---------- Read receipts ---------- */
+
+/* Sits beside the timestamp, quieter than it: useful when looked for,
+   invisible when not. */
+.receipt {
+  margin-left: 7px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.receipt-seen {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* ---------- New-visitor alert ---------- */
+
+/* Sits above everything, bottom-left so it never covers the composer or
+   the row an agent is about to click. */
+.toast {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--deep);
+  color: #fff;
+  padding: 13px 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  box-shadow: 0 12px 32px rgba(11, 43, 39, 0.3);
+  animation: toast-in 220ms ease both;
+}
+
+@keyframes toast-in {
+  from { transform: translateY(10px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.toast-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--waiting);
+  flex-shrink: 0;
+}
+
+.toast-link {
+  margin-left: 6px;
+  color: #7fd7c0;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+/* Reuses the sidebar link style, but reads as a control rather than
+   navigation. */
+.alert-toggle {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  color: #7fa79e;
+}
+
+.alert-toggle:hover {
+  color: #fff;
+}
+
+/* ---------- System lines ---------- */
+
+/* Not a message from anyone, so deliberately not a bubble: centred,
+   small, and easy to skip when reading the actual conversation. */
+.system-line {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 14px 0;
+  padding: 0 20px;
+}
+
+.system-time {
+  margin-left: 7px;
+  opacity: 0.75;
+}

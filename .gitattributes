@@ -1,0 +1,17 @@
+# Normalize line endings so the repo stays clean regardless of who commits
+# from Windows and who from macOS/Linux. Without this, every Windows
+# commit shows whole files as changed, and `git add` prints a wall of
+# "LF will be replaced by CRLF" warnings.
+* text=auto eol=lf
+
+# Shell scripts must keep LF or they won't run on Linux servers.
+*.sh text eol=lf
+
+# PowerShell is happier with CRLF on Windows.
+*.ps1 text eol=crlf
+
+# Never touch binaries.
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary

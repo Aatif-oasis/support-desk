@@ -1,0 +1,49 @@
+# Render Blueprint — backend only.
+#
+# The dashboard goes to Vercel (it is a Next.js app and Vercel builds it
+# with no configuration), and the database and Redis come from Neon and
+# Upstash. Render's own free Postgres is deliberately not used here: it is
+# deleted 30 days after creation, which would quietly kill a demo a month
+# after you set it up.
+#
+# To use: push this file, then on Render choose New > Blueprint and point
+# it at this repository. Fill in the environment variables it asks for.
+
+services:
+  - type: web
+    name: oasis-chatbot-api
+    runtime: python
+    plan: free
+    region: singapore          # closest free region to India
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # Migrations and system roles run on every boot. On the free plan there
+    # is no shell to run them by hand, and both commands are safe to repeat:
+    # alembic skips applied migrations, and the seed only inserts what is
+    # missing.
+    startCommand: >
+      alembic upgrade head &&
+      python -m app.seed &&
+      python -m app.seed_demo &&
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: WEBHOOK_ASYNC_DELIVERY
+        value: "true"
+      # Filled in from the Render dashboard — never commit these.
+      - key: DATABASE_URL          # Neon: postgresql+asyncpg://...
+        sync: false
+      - key: REDIS_URL             # Upstash: rediss://default:...@...:6379
+        sync: false
+      - key: ALLOWED_ORIGINS       # ["https://your-app.vercel.app"]
+        sync: false
+      - key: SIGNUP_SETUP_KEY      # required — the URL is public
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true        # Render generates a strong one for you
